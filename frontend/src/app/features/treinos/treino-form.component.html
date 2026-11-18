@@ -1,0 +1,81 @@
+<a class="back-link" [routerLink]="cancelar()"><i class="bi bi-arrow-left"></i> {{ id() === undefined ? 'Treinos' : 'Detalhes do treino' }}</a>
+<header class="page-heading">
+  <div><h1>{{ id() === undefined ? 'Novo treino' : 'Editar treino' }}</h1><p>Preencha os dados da sessão e registre seus arremessos na quadra.</p></div>
+</header>
+@if (store.carregando() || treino.isLoading()) {
+  <curry-estado [carregando]="true" titulo="Preparando o treino" />
+} @else if (store.erro()) {
+  <curry-estado [falha]="true" titulo="Não foi possível carregar os jogadores" [texto]="store.erro()">
+    <button class="btn btn-outline-secondary" type="button" (click)="store.atualizar()">Tentar novamente</button>
+  </curry-estado>
+} @else if (treino.error(); as erro) {
+  <curry-estado [falha]="true" titulo="Não foi possível abrir o treino" [texto]="mensagemErro(erro)">
+    <button class="btn btn-outline-secondary" type="button" (click)="treino.reload()">Tentar novamente</button>
+  </curry-estado>
+} @else if (store.lista().length) {
+  <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+    <div class="workspace-grid">
+      <section class="card form-panel">
+        <header class="section-head"><div><h2>Sessão de treino</h2></div><i class="bi bi-calendar4-week section-icon"></i></header>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label" for="treino-jogador">Jogador <span class="required-mark">*</span></label>
+            <select class="form-select" id="treino-jogador" formControlName="jogadorId"
+                    [class.is-invalid]="form.controls.jogadorId.touched && form.controls.jogadorId.invalid">
+              <option [ngValue]="null" disabled>Selecione um jogador</option>
+              @for (jogador of store.lista(); track jogador.id) { <option [ngValue]="jogador.id">{{ jogador.nome }}</option> }
+            </select>
+            @if (form.controls.jogadorId.touched && form.controls.jogadorId.invalid) {
+              <div class="invalid-feedback">Selecione um jogador.</div>
+            }
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label" for="treino-data">Data <span class="required-mark">*</span></label>
+            <input class="form-control" id="treino-data" formControlName="data" type="date"
+                   [class.is-invalid]="form.controls.data.touched && form.controls.data.invalid">
+            @if (form.controls.data.touched && form.controls.data.invalid) { <div class="invalid-feedback">Informe a data.</div> }
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label" for="treino-duracao">Duração (min) <span class="required-mark">*</span></label>
+            <input class="form-control" id="treino-duracao" formControlName="duracaoMinutos" type="number" min="1" step="1"
+                   inputmode="numeric" placeholder="45" [class.is-invalid]="form.controls.duracaoMinutos.touched && form.controls.duracaoMinutos.invalid">
+            @if (form.controls.duracaoMinutos.touched && form.controls.duracaoMinutos.invalid) {
+              <div class="invalid-feedback">Informe a duração em minutos inteiros, acima de zero.</div>
+            }
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="treino-obs">Observações</label>
+            <textarea class="form-control" id="treino-obs" formControlName="observacoes" rows="4" maxlength="4000"
+                      placeholder="Ex. Trabalhei o arremesso após o drible."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="card form-panel">
+        <header class="section-head">
+          <div><h2>Arremessos por zona</h2><p>Clique na quadra para preencher cada zona.</p></div>
+          <span class="badge rate-badge">{{ quadra().length }} de 5 zonas</span>
+        </header>
+        <curry-quadra [dados]="quadra()" [selecionada]="zona()" [exibirDetalhes]="false" (selecionar)="zona.set($event)" />
+        <div class="zone-editor">
+          <div class="zone-editor-head">
+            <h3><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ nomeZona(zona()) }}</h3>
+            <button class="text-action" type="button" (click)="controles[zona()].reset()">Limpar zona</button>
+          </div>
+          <curry-zona-campos [campos]="controles[zona()]" prefixo="form-zona" />
+        </div>
+      </section>
+    </div>
+    @if (erroSalvar()) { <p class="alert alert-danger form-error" role="alert">{{ erroSalvar() }}</p> }
+    <div class="form-actions page-actions">
+      <a class="btn btn-outline-secondary" [routerLink]="cancelar()">Cancelar</a>
+      <button class="btn btn-primary" type="submit" [disabled]="salvando()">
+        <i class="bi bi-check2"></i> {{ salvando() ? 'Salvando…' : 'Salvar treino' }}
+      </button>
+    </div>
+  </form>
+} @else {
+  <curry-estado titulo="Cadastre um jogador" icone="person-plus" texto="Todo treino precisa estar vinculado a um jogador.">
+    <a class="btn btn-primary" routerLink="/jogadores/novo" [queryParams]="{ proximo: 'treino' }">Novo jogador</a>
+  </curry-estado>
+}

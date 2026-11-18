@@ -1,0 +1,93 @@
+<header class="page-heading">
+  <div><h1>Evolução</h1><p>{{ store.ativo()?.nome || 'Acompanhe seus treinos ao longo do tempo.' }}</p></div>
+</header>
+@if (store.carregando() || dados.isLoading()) {
+  <curry-estado [carregando]="true" titulo="Carregando evolução" />
+} @else if (store.erro()) {
+  <curry-estado [falha]="true" titulo="Não foi possível carregar os jogadores" [texto]="store.erro()">
+    <button type="button" class="btn btn-outline-secondary" (click)="store.atualizar()">Tentar novamente</button>
+  </curry-estado>
+} @else if (dados.error(); as erro) {
+  <curry-estado [falha]="true" titulo="Não foi possível carregar a evolução" [texto]="mensagemErro(erro)">
+    <button type="button" class="btn btn-outline-secondary" (click)="dados.reload()">Tentar novamente</button>
+  </curry-estado>
+} @else if (dados.hasValue()) {
+  @let detalhe = dados.value();
+  @let evolucao = detalhe.evolucao;
+  @if (sessoes().length) {
+    <section class="dashboard-stats evolution-metrics" aria-label="Indicadores de evolução">
+      <curry-stat-card titulo="Melhor treino" [valor]="percentual(evolucao.melhorTreino?.percentual ?? null)"
+                       [subtitulo]="evolucao.melhorTreino ? formatarData(evolucao.melhorTreino.data) : 'Sem tentativas'"
+                       [destaque]="true" />
+      <curry-stat-card titulo="Variação" [valor]="evolucao.variacaoPp === null ? '—' : pontosPercentuais(evolucao.variacaoPp)"
+                       subtitulo="Entre a primeira e a última data com tentativas" />
+      <curry-stat-card titulo="Treinos registrados" [valor]="inteiro(sessoes().length)"
+                       [subtitulo]="inteiro(evolucao.pontos.length) + ' datas de treino'" />
+    </section>
+    <div class="dashboard-grid">
+      <section class="card dashboard-panel">
+        <header class="section-head"><div><h2>Aproveitamento ao longo do tempo</h2><p>Acertos sobre tentativas em cada data</p></div>
+          <i class="bi bi-graph-up section-icon"></i></header>
+        @if (temGrafico()) {
+          <div class="long-chart"><curry-grafico [pontos]="evolucao.pontos" /></div>
+        } @else {
+          <div class="panel-empty"><i class="bi bi-graph-up"></i><p>Registre tentativas para exibir o gráfico.</p></div>
+        }
+      </section>
+      <section class="card dashboard-panel">
+        <header class="section-head"><div><h2>Aproveitamento por zona</h2><p>Todas as sessões do jogador</p></div>
+          <i class="bi bi-bullseye section-icon"></i></header>
+        <curry-zonas-lista [zonas]="detalhe.zonas" />
+      </section>
+
+      @if (sessoes().length > 1) {
+        <section class="card dashboard-panel full-panel">
+          <header class="section-head"><div><h2>Comparar sessões</h2><p>Escolha dois treinos para comparar os resultados.</p></div>
+            <i class="bi bi-columns-gap section-icon"></i></header>
+          <div class="comparison-grid">
+            <div>
+              <label class="form-label" for="sessao-a">Primeiro treino</label>
+              <select class="form-select" id="sessao-a" [value]="sessaoA()?.id" (change)="sessaoAId.set(+$any($event.target).value)">
+                @for (sessao of sessoes(); track sessao.id) {
+                  <option [value]="sessao.id" [selected]="sessao.id === sessaoA()?.id">{{ legenda(sessao) }}</option>
+                }
+              </select>
+              @if (sessaoA(); as sessao) {
+                <div class="session-compare"><strong>{{ percentual(sessao.percentual) }}</strong>
+                  <span>{{ inteiro(sessao.acertos) }} / {{ inteiro(sessao.tentativas) }}</span></div>
+                <div class="progress meter" aria-hidden="true"><span class="progress-bar" [style.width.%]="sessao.percentual ?? 0"></span></div>
+              }
+            </div>
+            <div>
+              <label class="form-label" for="sessao-b">Segundo treino</label>
+              <select class="form-select" id="sessao-b" [value]="sessaoB()?.id" (change)="sessaoBId.set(+$any($event.target).value)">
+                @for (sessao of sessoes(); track sessao.id) {
+                  <option [value]="sessao.id" [selected]="sessao.id === sessaoB()?.id">{{ legenda(sessao) }}</option>
+                }
+              </select>
+              @if (sessaoB(); as sessao) {
+                <div class="session-compare"><strong>{{ percentual(sessao.percentual) }}</strong>
+                  <span>{{ inteiro(sessao.acertos) }} / {{ inteiro(sessao.tentativas) }}</span></div>
+                <div class="progress meter meter-blue" aria-hidden="true"><span class="progress-bar" [style.width.%]="sessao.percentual ?? 0"></span></div>
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+      <section class="card dashboard-panel full-panel">
+        <header class="section-head"><div><h2>Histórico cronológico</h2><p>Da primeira à última sessão</p></div>
+          <i class="bi bi-clock-history section-icon"></i></header>
+        <curry-treinos-tabela [treinos]="sessoes()" />
+      </section>
+    </div>
+  } @else {
+    <curry-estado icone="graph-up-arrow" titulo="Ainda não há treinos para este jogador">
+      <a class="btn btn-primary" routerLink="/treinos/novo">Registrar treino</a>
+    </curry-estado>
+  }
+} @else {
+  <curry-estado icone="person-plus" titulo="Cadastre um jogador para acompanhar a evolução">
+    <a class="btn btn-primary" routerLink="/jogadores/novo">Novo jogador</a>
+  </curry-estado>
+}

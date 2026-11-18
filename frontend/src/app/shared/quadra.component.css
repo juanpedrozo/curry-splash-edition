@@ -1,0 +1,57 @@
+:host { display: block; min-width: 0; }
+.court { position: relative; max-width: 560px; margin-inline: auto; }
+.court-svg { display: block; width: 100%; height: auto; }
+.court-floor { fill: #f8f3e6; stroke: #94866d; stroke-width: 1.5; }
+.court-lane-fill { fill: #eee4cc; }
+.court-line, .court-dash, .court-three, .court-rim { fill: none; stroke: #8b7e68; stroke-width: 1.55; }
+.court-dash { stroke-dasharray: 5 5; }
+.court-rim { stroke: #91601d; stroke-width: 2; }
+.court-point {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: transparent;
+  --point-color: #465265;
+  --point-bg: #fff;
+  --point-line: #a2aab6;
+}
+.court-point span {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  min-height: 24px;
+  padding-inline: 4px;
+  border: 1px solid var(--point-line);
+  border-radius: 4px;
+  background: var(--point-bg);
+  color: var(--point-color);
+  font-size: .675rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.court-point:not(.selected):hover span { text-decoration: underline; }
+.court-point.selected span { outline: 2px solid var(--accent); outline-offset: 1px; }
+.point-low { --point-color: #3d4675; --point-bg: #f1f1fa; --point-line: #9ea5c6; }
+.point-middle { --point-color: #275b49; --point-bg: #f0f7f1; --point-line: #8aab94; }
+.point-high { --point-color: #6c4906; --point-bg: #fff7de; --point-line: #b49a53; }
+.court-details {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: .25rem .75rem;
+  padding: .5rem .625rem;
+  border: 1px solid var(--line);
+  border-radius: var(--bs-border-radius);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: .75rem;
+}
+.court-details > span, .court-details strong { color: var(--text); font-weight: 650; }
+.court-details .court-percent { color: var(--accent); }
+.court-details > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .625rem; }

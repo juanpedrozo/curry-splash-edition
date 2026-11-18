@@ -1,0 +1,88 @@
+<header class="page-heading">
+  <div><h1>Arremessos</h1><p>Registre e ajuste os resultados das cinco zonas em cada sessão.</p></div>
+</header>
+
+@if (treinos.isLoading()) {
+  <curry-estado [carregando]="true" titulo="Carregando treinos" />
+} @else if (treinos.error(); as erro) {
+  <curry-estado [falha]="true" titulo="Não foi possível carregar os treinos" [texto]="mensagemErro(erro)">
+    <button type="button" class="btn btn-outline-secondary" (click)="treinos.reload()">Tentar novamente</button>
+  </curry-estado>
+} @else if (treinos.hasValue() && treinos.value().length) {
+  <div class="card session-selector">
+    <div>
+      <label class="form-label" for="arremessos-treino">Sessão de treino</label>
+      <select class="form-select" id="arremessos-treino" [value]="treinoAtivo()?.id ?? ''"
+              [disabled]="operando()" (change)="trocarTreino(+$any($event.target).value)">
+        @if (!treinoAtivo()) { <option value="" selected disabled>Selecione um treino</option> }
+        @for (treino of treinos.value(); track treino.id) {
+          <option [value]="treino.id" [selected]="treino.id === treinoAtivo()?.id">
+            {{ formatarData(treino.data) }} · {{ treino.jogadorNome }} · #{{ treino.id }}
+          </option>
+        }
+      </select>
+    </div>
+    @if (treinoAtivo(); as treino) {
+      <a class="text-action" [routerLink]="['/treinos', treino.id]">Ver treino <i class="bi bi-arrow-right"></i></a>
+    }
+  </div>
+
+  @if (arremessos.isLoading()) {
+    <curry-estado [carregando]="true" titulo="Carregando arremessos" />
+  } @else if (arremessos.error(); as erro) {
+    <curry-estado [falha]="true" titulo="Não foi possível abrir os arremessos" [texto]="mensagemErro(erro)">
+      <button type="button" class="btn btn-outline-secondary" (click)="arremessos.reload()">Tentar novamente</button>
+    </curry-estado>
+  } @else if (treinoAtivo()) {
+    <div class="workspace-grid shot-workspace">
+      <section class="card form-panel">
+        <header class="section-head"><div><h2>Selecione uma zona</h2></div><i class="bi bi-bullseye section-icon"></i></header>
+        <curry-quadra [dados]="registros()" [selecionada]="zona()" (selecionar)="zona.set($event)" />
+      </section>
+      <section class="card form-panel">
+        <header class="section-head">
+          <div><h2>{{ nomeZona(zona()) }}</h2><p>{{ atual() ? 'Edite o registro desta zona.' : 'Registre as tentativas e os acertos.' }}</p></div>
+          <i class="bi bi-geo-alt section-icon"></i>
+        </header>
+        <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+          <curry-zona-campos [campos]="form" prefixo="registro-zona" />
+          @if (erroAlteracao()) { <p class="alert alert-danger form-error" role="alert">{{ erroAlteracao() }}</p> }
+          <div class="form-actions">
+            @if (atual(); as item) {
+              <button type="button" class="btn btn-outline-danger" [disabled]="operando()" (click)="excluir(item)">
+                <i class="bi bi-trash3"></i> Excluir registro
+              </button>
+            }
+            <button class="btn btn-primary" type="submit" [disabled]="operando()">
+              <i class="bi bi-check2"></i> {{ operando() ? 'Aguarde…' : 'Salvar zona' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <section class="card dashboard-panel section-space">
+      <header class="section-head"><div><h2>Zonas registradas</h2><p>{{ registros().length }} de 5 zonas nesta sessão</p></div></header>
+      @if (registros().length) {
+        <div class="table-responsive">
+          <table class="table table-hover table-splash">
+            <thead><tr><th scope="col">Zona</th><th scope="col">Tentativas</th><th scope="col">Acertos</th><th scope="col">Aproveitamento</th></tr></thead>
+            <tbody>
+              @for (item of registros(); track item.id) {
+                <tr><td><button type="button" class="text-action" (click)="zona.set(item.zona)">{{ nomeZona(item.zona) }}</button></td>
+                  <td>{{ inteiro(item.tentativas) }}</td><td>{{ inteiro(item.acertos) }}</td><td>{{ percentual(item.percentual) }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="panel-empty"><i class="bi bi-bullseye"></i><p>Nenhum arremesso registrado nesta sessão.</p></div>
+      }
+    </section>
+  } @else {
+    <curry-estado icone="calendar-x" titulo="Treino indisponível" texto="Selecione uma sessão na lista." />
+  }
+} @else {
+  <curry-estado icone="bullseye" titulo="Registre o primeiro treino" texto="Os arremessos ficam vinculados à sessão em que foram feitos.">
+    <a class="btn btn-primary" routerLink="/treinos/novo">Novo treino</a>
+  </curry-estado>
+}

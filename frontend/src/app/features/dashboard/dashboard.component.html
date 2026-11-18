@@ -1,0 +1,98 @@
+<header class="page-heading dashboard-heading">
+  <div>
+    <h1>Painel de treinos</h1>
+    @if (store.ativo(); as jogador) {
+      <p>Olá, <strong>{{ jogador.apelido || jogador.nome.split(' ')[0] }}</strong>.</p>
+    } @else {
+      <p>Registre treinos e acompanhe seus arremessos de três.</p>
+    }
+  </div>
+</header>
+
+@if (store.carregando() || dados.isLoading()) {
+  <curry-estado [carregando]="true" titulo="Carregando desempenho" />
+} @else if (store.erro()) {
+  <curry-estado [falha]="true" icone="cloud-slash" titulo="Não foi possível carregar os jogadores" [texto]="store.erro()">
+    <button class="btn btn-outline-secondary" type="button" (click)="store.atualizar()">Tentar novamente</button>
+  </curry-estado>
+} @else if (dados.error(); as erro) {
+  <curry-estado [falha]="true" icone="cloud-slash" titulo="Não foi possível carregar as estatísticas" [texto]="mensagemErro(erro)">
+    <button class="btn btn-outline-secondary" type="button" (click)="dados.reload()">Tentar novamente</button>
+  </curry-estado>
+} @else if (dados.hasValue()) {
+  @let painel = dados.value();
+  @let totais = painel.resumo.totais;
+
+  <section class="card dashboard-summary mb-3" aria-label="Estatísticas gerais">
+    <div class="row row-cols-2 row-cols-sm-4 g-0">
+      <curry-stat-card class="col" titulo="Treinos" [valor]="inteiro(totais.totalTreinos)" />
+      <curry-stat-card class="col" titulo="Tentativas" [valor]="inteiro(totais.tentativas)" />
+      <curry-stat-card class="col" titulo="Acertos" [valor]="inteiro(totais.acertos)" />
+      <curry-stat-card class="col" titulo="Aproveitamento" [valor]="percentual(totais.percentual)" [destaque]="true" />
+    </div>
+  </section>
+
+  <div class="dashboard-content">
+    <section class="card dashboard-history" aria-labelledby="historico-titulo">
+      <header class="card-header section-head align-items-center">
+        <h2 id="historico-titulo">Últimos treinos</h2>
+        <a class="text-action" routerLink="/treinos">Ver histórico</a>
+      </header>
+      @if (painel.resumo.ultimosTreinos.length) {
+        <curry-treinos-tabela [treinos]="painel.resumo.ultimosTreinos" />
+      } @else {
+        <div class="card-body panel-empty">
+          <p>Nenhum treino registrado.</p>
+          <a class="text-action" routerLink="/treinos/novo">Registrar treino</a>
+        </div>
+      }
+    </section>
+
+    <section class="card dashboard-court" aria-labelledby="quadra-titulo">
+      <header class="card-header section-head">
+        <div><h2 id="quadra-titulo">Mapa de arremessos</h2><p>Selecione uma zona na quadra</p></div>
+      </header>
+      <div class="card-body">
+        <curry-quadra [dados]="painel.zonas" [selecionada]="selecionada()" (selecionar)="selecionada.set($event)" />
+      </div>
+      <div class="zones-heading border-top">
+        <h3>Aproveitamento por zona</h3>
+      </div>
+      <curry-zonas-lista [zonas]="painel.zonas" />
+      @if (painel.resumo.melhorZona; as melhor) {
+        <footer class="card-footer court-best">
+          Melhor zona <strong>{{ nomeZona(melhor.zona) }} · {{ percentual(melhor.percentual) }}</strong>
+        </footer>
+      }
+    </section>
+
+    <section class="card dashboard-trend" aria-labelledby="evolucao-titulo">
+      <header class="card-header section-head align-items-center flex-wrap">
+        <div>
+          <h2 id="evolucao-titulo">Evolução do arremesso</h2>
+          <p>Aproveitamento por data de treino</p>
+        </div>
+        <div class="btn-group btn-group-sm segmented" role="group" aria-label="Período do gráfico">
+          <button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="periodo() === 'tudo'" (click)="periodo.set('tudo')">Tudo</button>
+          <button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="periodo() === '30-dias'" (click)="periodo.set('30-dias')">30 dias</button>
+        </div>
+      </header>
+      <div class="card-body">
+        @if (temGrafico()) {
+          <div class="dashboard-chart"><curry-grafico [pontos]="pontos()" /></div>
+        } @else {
+          <div class="panel-empty"><p>Sem tentativas registradas no período.</p></div>
+        }
+      </div>
+      @if (temGrafico()) {
+        <footer class="card-footer text-end">
+          <a class="text-action" routerLink="/evolucao">Ver evolução</a>
+        </footer>
+      }
+    </section>
+  </div>
+} @else {
+  <curry-estado icone="person-plus" titulo="Cadastre seu primeiro jogador" texto="Crie um perfil para registrar treinos e consultar o desempenho.">
+    <a class="btn btn-primary" routerLink="/jogadores/novo">Novo jogador</a>
+  </curry-estado>
+}
