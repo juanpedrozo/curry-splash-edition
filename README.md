@@ -90,6 +90,32 @@ $env:DB_PASSWORD = Read-Host 'Senha do Neon'
 mvn -f backend/pom.xml spring-boot:run
 ```
 
+#### Usar o Neon pelo Docker no Codespace
+
+Com o banco importado no Neon, execute no terminal Bash da pasta do projeto:
+
+```bash
+bash scripts/iniciar-neon.sh
+```
+
+O comando solicita a URL JDBC da conexão direta, sem credenciais, e depois a senha, com a digitação oculta. Use o formato de URL da seção anterior. O usuário padrão é `neondb_owner`; informe `NEON_DB_USER` no ambiente se sua conta usar outro nome. A senha é enviada ao ambiente do contêiner e não é escrita no repositório. Como em qualquer contêiner, um administrador do Docker consegue inspecionar suas variáveis.
+
+O script usa `compose.neon.yml`, que executa somente o serviço `app`. A aplicação passa a usar o Neon; o serviço `db` e o volume local existentes são preservados. Para acompanhar o início do Java:
+
+```bash
+docker compose -f compose.neon.yml logs -f app
+```
+
+Espere a mensagem `Started CurryApplication` e abra a porta 8080 encaminhada pelo Codespace. Cadastre um registro de teste pela interface e consulte-o no SQL Editor do Neon para confirmar a integração. As consultas do SQL Editor são administrativas; as telas do CURRY continuam respeitando o proprietário da conta.
+
+Para parar apenas a aplicação conectada ao Neon:
+
+```bash
+docker compose -f compose.neon.yml stop app
+```
+
+Para voltar a usar o banco local, com a configuração original de `.env`, execute `docker compose up -d app`. O Codespace precisa permanecer ativo para executar o Java. Este modo permite demonstrar o sistema com Neon sem contratar o Render; hospedar o frontend na Vercel não mantém o Java em execução.
+
 ## Arquitetura e estrutura
 
 O Angular 22 usa componentes standalone, Router, Reactive Forms, HttpClient, Bootstrap 5, Bootstrap Icons e Chart.js. A área de trabalho clara usa tabelas, formulários e controles do Bootstrap. O azul-marinho e o dourado identificam a navegação. As fontes Poppins e Inter são servidas pela aplicação. O Spring Boot 3.5 usa Java 21, Spring Web, Spring Data JPA, Hibernate, Bean Validation, Flyway e Spring Security. Os CRUDs usam JPA e os relatórios consultam views PostgreSQL por SQL parametrizado.
