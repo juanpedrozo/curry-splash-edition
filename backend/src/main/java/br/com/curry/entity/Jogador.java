@@ -1,6 +1,9 @@
 package br.com.curry.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,6 +21,10 @@ public class Jogador {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
     @Column(nullable = false, length = 120)
     private String nome;
 
@@ -33,7 +40,8 @@ public class Jogador {
 
     protected Jogador() {}
 
-    public Jogador(String nome, String apelido, String posicao) {
+    public Jogador(Usuario usuario, String nome, String apelido, String posicao) {
+        this.usuario = java.util.Objects.requireNonNull(usuario);
         atualizar(nome, apelido, posicao);
     }
 

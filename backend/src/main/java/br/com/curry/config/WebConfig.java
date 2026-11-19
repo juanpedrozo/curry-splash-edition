@@ -19,7 +19,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOrigins(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("Content-Type")
+                .allowedHeaders("Content-Type", "X-CSRF-TOKEN")
+                .allowCredentials(true)
                 .exposedHeaders("Location");
     }
 
@@ -28,7 +29,7 @@ public class WebConfig implements WebMvcConfigurer {
         for (String path : new String[] {
                 "/jogadores", "/jogadores/novo", "/jogadores/{id}/editar", "/jogadores/{id}",
                 "/treinos", "/treinos/novo", "/treinos/{id}", "/treinos/{id}/editar",
-                "/arremessos", "/arremessos/{treinoId}", "/evolucao", "/ranking"
+                "/login", "/cadastro", "/arremessos", "/arremessos/{treinoId}", "/evolucao", "/ranking"
         }) {
             registry.addViewController(path).setViewName("forward:/index.html");
         }

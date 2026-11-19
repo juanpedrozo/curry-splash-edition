@@ -44,3 +44,12 @@ WHERE t.acertos::numeric / NULLIF(t.tentativas, 0) > (
     WHERE j.jogador_id = t.jogador_id
 )
 ORDER BY t.jogador_id, t.data_treino, t.id;
+
+-- 6. Relação entre contas e jogadores (consulta administrativa, sem hashes/senhas).
+SELECT u.id AS usuario_id, u.nome AS usuario, j.id AS jogador_id, j.nome AS jogador,
+       COUNT(t.id) AS total_treinos
+FROM usuarios u
+LEFT JOIN jogadores j ON j.usuario_id = u.id
+LEFT JOIN treinos t ON t.jogador_id = j.id
+GROUP BY u.id, u.nome, j.id, j.nome
+ORDER BY u.nome, j.nome;

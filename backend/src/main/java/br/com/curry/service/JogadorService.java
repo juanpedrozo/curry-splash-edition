@@ -1,6 +1,7 @@
 package br.com.curry.service;
 
 import br.com.curry.dto.JogadorDto;
+import br.com.curry.security.UsuarioAtual;
 import br.com.curry.entity.Jogador;
 import br.com.curry.exception.RecursoNaoEncontradoException;
 import br.com.curry.repository.JogadorRepository;
@@ -14,12 +15,15 @@ import java.util.List;
 public class JogadorService {
     private final JogadorRepository jogadores;
 
-    public JogadorService(JogadorRepository jogadores) {
+    private final UsuarioAtual atual;
+
+    public JogadorService(JogadorRepository jogadores, UsuarioAtual atual) {
+        this.atual = atual;
         this.jogadores = jogadores;
     }
 
     public List<JogadorDto.Saida> listar() {
-        return jogadores.findAllByOrderByNomeAscIdAsc().stream().map(this::saida).toList();
+        return jogadores.findByUsuario_IdOrderByNomeAscIdAsc(atual.id()).stream().map(this::saida).toList();
     }
 
     public JogadorDto.Saida consultar(long id) {
@@ -28,7 +32,7 @@ public class JogadorService {
 
     @Transactional
     public JogadorDto.Saida criar(JogadorDto.Entrada entrada) {
-        Jogador jogador = new Jogador(entrada.nome().strip(), opcional(entrada.apelido()), opcional(entrada.posicao()));
+        Jogador jogador = new Jogador(atual.conta(), entrada.nome().strip(), opcional(entrada.apelido()), opcional(entrada.posicao()));
         return saida(jogadores.saveAndFlush(jogador));
     }
 
@@ -45,7 +49,7 @@ public class JogadorService {
     }
 
     Jogador buscar(long id) {
-        return jogadores.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Jogador", id));
+        return jogadores.findByIdAndUsuario_Id(id, atual.id()).orElseThrow(() -> new RecursoNaoEncontradoException("Jogador", id));
     }
 
     static String opcional(String texto) {

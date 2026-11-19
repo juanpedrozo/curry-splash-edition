@@ -1,0 +1,71 @@
+<div class="auth-page">
+  <header class="auth-header">
+    <a class="brand auth-brand" routerLink="/login" aria-label="CURRY Splash Edition">
+      <img src="marca.svg" width="34" height="34" alt=""><strong>CURRY</strong><span class="brand-edition">Splash Edition</span>
+    </a>
+    <span class="auth-slogan d-none d-sm-block">Every Shot Counts.</span>
+  </header>
+  <div class="auth-main">
+    <section class="card auth-card" aria-labelledby="auth-titulo">
+      <div class="auth-card-heading">
+        <span class="auth-label">BASKETBALL PERFORMANCE TRACKER</span>
+        <h1 id="auth-titulo">{{ cadastro ? 'Crie sua conta' : 'Entre no CURRY' }}</h1>
+        <p>{{ cadastro ? 'Cadastre-se para acompanhar seus jogadores e treinos.' : 'Acesse seus treinos e continue acompanhando sua evolução.' }}</p>
+      </div>
+      @if (criada) { <div class="alert alert-success" role="status">Conta criada. Entre com seu e-mail e senha.</div> }
+      @if (expirada) { <div class="alert alert-warning" role="status">Sua sessão terminou. Entre novamente para continuar.</div> }
+      <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+        @if (cadastro) {
+          <div class="mb-3">
+            <label class="form-label" for="conta-nome">Seu nome <span class="required-mark">*</span></label>
+            <input class="form-control" id="conta-nome" formControlName="nome" autocomplete="name" maxlength="120"
+              [class.is-invalid]="invalido('nome')" [attr.aria-invalid]="invalido('nome')" aria-describedby="nome-erro">
+            @if (invalido('nome')) { <div class="invalid-feedback" id="nome-erro">Informe seu nome, com até 120 caracteres.</div> }
+          </div>
+        }
+        <div class="mb-3">
+          <label class="form-label" for="conta-email">E-mail <span class="required-mark">*</span></label>
+          <input class="form-control" id="conta-email" type="email" formControlName="email" autocomplete="username"
+            maxlength="254" autocapitalize="none" spellcheck="false" [class.is-invalid]="invalido('email')"
+            [attr.aria-invalid]="invalido('email')" aria-describedby="email-erro">
+          @if (invalido('email')) { <div class="invalid-feedback" id="email-erro">Informe um e-mail válido.</div> }
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="conta-senha">Senha <span class="required-mark">*</span></label>
+          <div class="input-group">
+            <input class="form-control" id="conta-senha" [type]="mostrarSenha() ? 'text' : 'password'" formControlName="senha"
+              [autocomplete]="cadastro ? 'new-password' : 'current-password'" maxlength="72"
+              [class.is-invalid]="invalido('senha')" [attr.aria-invalid]="invalido('senha')" aria-describedby="senha-ajuda">
+            <button class="btn btn-outline-secondary" type="button" (click)="mostrarSenha.update(valor => !valor)"
+              [attr.aria-label]="mostrarSenha() ? 'Ocultar senha' : 'Mostrar senha'" [attr.aria-pressed]="mostrarSenha()">
+              <i [class]="mostrarSenha() ? 'bi bi-eye-slash' : 'bi bi-eye'" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="senha-ajuda" class="form-text" [class.text-danger]="invalido('senha')">
+            {{ cadastro ? 'Use pelo menos 8 caracteres. Limite de 72 bytes para acentos e símbolos.' : (invalido('senha') ? 'Informe sua senha.' : '') }}
+          </div>
+        </div>
+        @if (cadastro) {
+          <div class="mb-3">
+            <label class="form-label" for="conta-confirmacao">Confirme a senha <span class="required-mark">*</span></label>
+            <input class="form-control" id="conta-confirmacao" type="password" formControlName="confirmacao"
+              autocomplete="new-password" maxlength="72" [class.is-invalid]="invalido('confirmacao')"
+              [attr.aria-invalid]="invalido('confirmacao')" aria-describedby="confirmacao-erro">
+            @if (invalido('confirmacao')) { <div class="invalid-feedback" id="confirmacao-erro">As senhas precisam ser iguais.</div> }
+          </div>
+          <p class="auth-privacy"><i class="bi bi-shield-check" aria-hidden="true"></i> Só você acessa seus jogadores e treinos. Os nomes e resultados gerais aparecem no ranking compartilhado.</p>
+        }
+        @if (erro()) { <div class="alert alert-danger" role="alert">{{ erro() }}</div> }
+        <button class="btn btn-primary w-100 auth-submit" type="submit" [disabled]="enviando()">
+          @if (enviando()) { <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> }
+          {{ enviando() ? 'Aguarde…' : (cadastro ? 'Criar conta' : 'Entrar') }}
+          @if (!enviando()) { <i class="bi bi-arrow-right" aria-hidden="true"></i> }
+        </button>
+      </form>
+      <p class="auth-switch">{{ cadastro ? 'Já tem uma conta?' : 'Primeira vez por aqui?' }}
+        <a [routerLink]="cadastro ? '/login' : '/cadastro'">{{ cadastro ? 'Entrar' : 'Criar minha conta' }}</a>
+      </p>
+    </section>
+    <p class="auth-footer">CURRY · Seu jogo, treino após treino.</p>
+  </div>
+</div>

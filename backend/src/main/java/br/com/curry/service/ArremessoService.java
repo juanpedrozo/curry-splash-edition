@@ -1,6 +1,7 @@
 package br.com.curry.service;
 
 import br.com.curry.dto.ArremessoDto;
+import br.com.curry.security.UsuarioAtual;
 import br.com.curry.entity.Arremesso;
 import br.com.curry.entity.Treino;
 import br.com.curry.exception.CampoInvalidoException;
@@ -18,16 +19,18 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 public class ArremessoService {
+    private final UsuarioAtual atual;
     private final ArremessoRepository arremessos;
     private final TreinoRepository treinos;
 
-    public ArremessoService(ArremessoRepository arremessos, TreinoRepository treinos) {
+    public ArremessoService(ArremessoRepository arremessos, TreinoRepository treinos, UsuarioAtual atual) {
+        this.atual = atual;
         this.arremessos = arremessos;
         this.treinos = treinos;
     }
 
     public List<ArremessoDto.Saida> listar(Long treinoId, Long jogadorId) {
-        return arremessos.listar(treinoId, jogadorId).stream().map(ArremessoService::saida).toList();
+        return arremessos.listar(treinoId, jogadorId, atual.id()).stream().map(ArremessoService::saida).toList();
     }
 
     public ArremessoDto.Saida consultar(long id) {
@@ -60,7 +63,7 @@ public class ArremessoService {
 
     @Transactional
     public void excluir(long id) {
-        long treinoId = arremessos.findTreinoId(id)
+        long treinoId = arremessos.findTreinoId(id, atual.id())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Arremesso", id));
         bloquearTreino(treinoId);
         arremessos.delete(buscar(id));
@@ -82,11 +85,11 @@ public class ArremessoService {
     }
 
     private Arremesso buscar(long id) {
-        return arremessos.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Arremesso", id));
+        return arremessos.findByIdAndTreino_Jogador_Usuario_Id(id, atual.id()).orElseThrow(() -> new RecursoNaoEncontradoException("Arremesso", id));
     }
 
     private Treino bloquearTreino(long id) {
-        return treinos.findLockedById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Treino", id));
+        return treinos.findLockedById(id, atual.id()).orElseThrow(() -> new RecursoNaoEncontradoException("Treino", id));
     }
 
     private void verificarZonaLivre(ArremessoDto.Entrada entrada) {

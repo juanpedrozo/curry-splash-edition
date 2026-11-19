@@ -11,7 +11,7 @@ import { EstadoComponent } from '../../shared/estado.component';
   imports: [EstadoComponent, RouterLink],
   template: `
     <header class="page-heading">
-      <div><h1>Ranking</h1><p>Compare o aproveitamento de três pontos entre os jogadores.</p></div>
+      <div><h1>Ranking</h1><p>Compare os resultados gerais dos jogadores. Os treinos individuais são privados.</p></div>
     </header>
     @if (ranking.isLoading()) {
       <curry-estado [carregando]="true" titulo="Carregando ranking" />
@@ -33,9 +33,9 @@ import { EstadoComponent } from '../../shared/estado.component';
               @for (item of ranking.value(); track item.jogadorId) {
                 <tr>
                   <td><span class="rank-position" [class.rank-first]="item.colocacao === 1">{{ item.colocacao ?? '—' }}</span></td>
-                  <td><a class="ranking-player table-link" [routerLink]="['/jogadores', item.jogadorId]">
+                  <td><span class="ranking-player">
                     <span class="avatar avatar-small">{{ iniciais(item.nome) }}</span>{{ item.nome }}
-                  </a></td>
+                  </span></td>
                   <td><span class="badge rate-badge" [class.no-rate]="item.totais.percentual === null">{{ percentual(item.totais.percentual) }}</span></td>
                   <td>{{ inteiro(item.totais.totalTreinos) }}</td><td>{{ inteiro(item.totais.acertos) }}</td>
                   <td>{{ inteiro(item.totais.tentativas) }}</td><td>{{ item.melhorZona ? nomeZona(item.melhorZona.zona) : '—' }}</td>

@@ -1,6 +1,12 @@
 import { Routes } from '@angular/router';
+import { apenasVisitantes, contaObrigatoria } from './core/auth.guard';
 
 export const routes: Routes = [
+  { path: 'login', title: 'Entrar | CURRY', canActivate: [apenasVisitantes],
+    loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent) },
+  { path: 'cadastro', title: 'Criar conta | CURRY', canActivate: [apenasVisitantes], data: { cadastro: true },
+    loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent) },
+  { path: '', canActivateChild: [contaObrigatoria], children: [
   { path: '', pathMatch: 'full', title: 'Dashboard | CURRY',
     loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
   { path: 'jogadores', title: 'Jogadores | CURRY',
@@ -28,4 +34,5 @@ export const routes: Routes = [
   { path: 'ranking', title: 'Ranking | CURRY',
     loadComponent: () => import('./features/ranking/ranking.component').then(m => m.RankingComponent) },
   { path: '**', redirectTo: '' },
+  ] },
 ];

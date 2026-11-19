@@ -1,6 +1,7 @@
 package br.com.curry.repository;
 
 import br.com.curry.dto.EstatisticasDto;
+import br.com.curry.security.UsuarioAtual;
 import br.com.curry.dto.TreinoDto;
 import br.com.curry.entity.Zona;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -18,7 +19,10 @@ import java.util.Optional;
 public class EstatisticasRepository {
     private final JdbcClient jdbc;
 
-    public EstatisticasRepository(JdbcClient jdbc) {
+    private final UsuarioAtual atual;
+
+    public EstatisticasRepository(JdbcClient jdbc, UsuarioAtual atual) {
+        this.atual = atual;
         this.jdbc = jdbc;
     }
 
@@ -30,11 +34,13 @@ public class EstatisticasRepository {
                 FROM vw_treino_totais v
                 JOIN treinos t ON t.id = v.id
                 JOIN jogadores j ON j.id = v.jogador_id
-                WHERE (:jogadorId IS NULL OR v.jogador_id = :jogadorId)
+                WHERE j.usuario_id = :usuarioId
+                  AND (:jogadorId IS NULL OR v.jogador_id = :jogadorId)
                   AND (:treinoId IS NULL OR v.id = :treinoId)
                 ORDER BY %s
                 LIMIT :limite
                 """.formatted(ordem))
+                .param("usuarioId", atual.id())
                 .param("jogadorId", jogadorId, Types.BIGINT)
                 .param("treinoId", treinoId, Types.BIGINT)
                 .param("limite", limite, Types.INTEGER)
@@ -83,6 +89,7 @@ public class EstatisticasRepository {
                            v.percentual, v.acertos::numeric / NULLIF(v.tentativas, 0) AS taxa
                     FROM jogadores j
                     JOIN vw_jogador_totais v ON v.jogador_id = j.id
+                    WHERE j.usuario_id IS NOT NULL
                 )
                 SELECT r.*,
                        CASE WHEN r.taxa IS NOT NULL THEN

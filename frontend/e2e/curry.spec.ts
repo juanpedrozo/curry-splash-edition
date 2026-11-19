@@ -1,6 +1,33 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, Page } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 
-test('cadastra jogador, registra cinco zonas, atualiza gráficos e gerencia os registros', async ({ page, request }) => {
+test.beforeEach(async ({ page }) => { await criarConta(page); });
+
+async function csrfHeaders(page: Page): Promise<Record<string, string>> {
+  const resposta = await page.request.get('/api/auth/csrf');
+  expect(resposta.status()).toBe(200);
+  const csrf = await resposta.json();
+  return { [csrf.headerName]: csrf.token };
+}
+
+async function criarConta(page: Page) {
+  const email = `e2e-${randomUUID()}@curry.test`;
+  const senha = `Teste-${randomUUID()}`;
+  await page.goto('/cadastro');
+  await page.getByLabel('Seu nome').fill('Conta de teste');
+  await page.getByLabel(/^E-mail/).fill(email);
+  await page.getByLabel(/^Senha/).fill(senha);
+  await page.getByLabel('Confirme a senha').fill(senha);
+  await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
+  await expect(page.getByText('Conta criada. Entre com seu e-mail e senha.')).toBeVisible();
+  await page.getByLabel(/^Senha/).fill(senha);
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sair da conta', exact: true })).toBeVisible();
+  return { email, senha };
+}
+
+test('cadastra jogador, registra cinco zonas, atualiza gráficos e gerencia os registros', async ({ page }) => {
+  const request = page.request;
   const nome = `Atleta E2E ${Date.now()}`;
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const erros: string[] = [];
@@ -19,8 +46,8 @@ test('cadastra jogador, registra cinco zonas, atualiza gráficos e gerencia os r
     await page.getByRole('button', { name: 'Salvar jogador' }).click();
     const jogador = await jogadorResponse;
     expect(jogador.status()).toBe(201);
-    jogadorId = (await jogador.json()).id;
     await expect(page.getByRole('link', { name: nome, exact: true })).toBeVisible();
+    jogadorId = Number((await page.getByRole('link', { name: nome, exact: true }).getAttribute('href'))!.split('/').pop());
     await page.getByRole('link', { name: nome, exact: true }).click();
     await page.getByRole('link', { name: 'Acompanhar desempenho' }).click();
     await expect(page.getByText('Splash', { exact: true })).toBeVisible();
@@ -48,7 +75,8 @@ test('cadastra jogador, registra cinco zonas, atualiza gráficos e gerencia os r
     await page.getByRole('button', { name: 'Salvar treino' }).click();
     const treino = await treinoResponse;
     expect(treino.status()).toBe(201);
-    const treinoId = (await treino.json()).sessao.id;
+    await expect(page).toHaveURL(/\/treinos\/\d+$/);
+    const treinoId = Number(new URL(page.url()).pathname.split('/').pop());
     await expect(page.getByRole('heading', { name: 'Resumo do treino' })).toBeVisible();
     await expect(page.getByText('5 de 5 zonas registradas')).toBeVisible();
 
@@ -107,16 +135,17 @@ test('cadastra jogador, registra cinco zonas, atualiza gráficos e gerencia os r
     await expect(page.getByRole('link', { name: nome, exact: true })).toHaveCount(0);
     expect(erros).toEqual([]);
   } finally {
-    if (jogadorId !== undefined) await request.delete(`/api/jogadores/${jogadorId}`);
+    if (jogadorId !== undefined) await request.delete(`/api/jogadores/${jogadorId}`, { headers: await csrfHeaders(page) });
   }
 });
 
-test('a navegação e a quadra são acessíveis em tela estreita', async ({ page, request }) => {
-  const response = await request.post('/api/jogadores', { data: { nome: `Mobile E2E ${Date.now()}` } });
+test('a navegação e a quadra são acessíveis em tela estreita', async ({ page }) => {
+  const request = page.request;
+  const response = await request.post('/api/jogadores', { headers: await csrfHeaders(page), data: { nome: `Mobile E2E ${Date.now()}` } });
   expect(response.status()).toBe(201);
   const jogadorId = (await response.json()).id;
   try {
-    const treino = await request.post('/api/treinos', { data: {
+    const treino = await request.post('/api/treinos', { headers: await csrfHeaders(page), data: {
       jogadorId, data: '2026-11-02', duracaoMinutos: 35,
       arremessos: [{ zona: 'ALA_ESQUERDA', tentativas: 10, acertos: 4 }],
     } });
@@ -132,6 +161,49 @@ test('a navegação e a quadra são acessíveis em tela estreita', async ({ page
     await expect(page.getByRole('heading', { name: 'Treinos', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Abrir menu' })).toHaveAttribute('aria-expanded', 'false');
   } finally {
-    await request.delete(`/api/jogadores/${jogadorId}`);
+    await request.delete(`/api/jogadores/${jogadorId}`, { headers: await csrfHeaders(page) });
+  }
+});
+
+
+test('isola as contas na interface e compartilha somente o ranking', async ({ page, browser, baseURL }) => {
+  const nomeA = `Privado A ${randomUUID()}`;
+  const nomeB = `Privado B ${randomUUID()}`;
+  const a = await page.request.post('/api/jogadores', { headers: await csrfHeaders(page), data: { nome: nomeA } });
+  expect(a.status()).toBe(201);
+  const idA = (await a.json()).id;
+  const outroContexto = await browser.newContext({ baseURL });
+  const outra = await outroContexto.newPage();
+  let idB: number | undefined;
+  try {
+    await criarConta(outra);
+    const b = await outra.request.post('/api/jogadores', { headers: await csrfHeaders(outra), data: { nome: nomeB } });
+    expect(b.status()).toBe(201);
+    idB = (await b.json()).id;
+    await page.goto('/jogadores');
+    await expect(page.getByRole('link', { name: nomeA, exact: true })).toBeVisible();
+    await expect(page.getByText(nomeB, { exact: true })).toHaveCount(0);
+    await outra.goto('/jogadores');
+    await expect(outra.getByRole('link', { name: nomeB, exact: true })).toBeVisible();
+    await expect(outra.getByText(nomeA, { exact: true })).toHaveCount(0);
+    await page.goto('/ranking');
+    await expect(page.getByRole('row').filter({ hasText: nomeB })).toBeVisible();
+    await expect(page.getByRole('link', { name: nomeB, exact: true })).toHaveCount(0);
+    expect((await page.request.get(`/api/jogadores/${idB}`)).status()).toBe(404);
+    await page.goto(`/jogadores/${idB}`);
+    await expect(page.getByRole('heading', { name: 'Não foi possível abrir o perfil' })).toBeVisible();
+    await page.reload();
+    expect((await page.request.get('/api/auth/me')).status()).toBe(200);
+    await page.goto('/jogadores');
+    await page.getByRole('button', { name: 'Sair da conta', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Entre no CURRY' })).toBeVisible();
+    expect((await page.request.get('/api/jogadores')).status()).toBe(401);
+    await page.goBack();
+    await expect(page.getByRole('heading', { name: 'Entre no CURRY' })).toBeVisible();
+    await expect(page.getByText(nomeA, { exact: true })).toHaveCount(0);
+  } finally {
+    if (idB !== undefined) await outra.request.delete(`/api/jogadores/${idB}`, { headers: await csrfHeaders(outra) });
+    await outroContexto.close();
+    // A conta saiu. O esquema PostgreSQL descartável é removido pelo executor dos testes.
   }
 });

@@ -10,6 +10,6 @@ import java.util.Optional;
 
 public interface TreinoRepository extends JpaRepository<Treino, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select t from Treino t where t.id = :id")
-    Optional<Treino> findLockedById(long id);
+    @Query("select t from Treino t where t.id = :id and t.jogador.usuario.id = :usuarioId")
+    Optional<Treino> findLockedById(long id, long usuarioId);
 }

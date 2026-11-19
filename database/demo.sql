@@ -1,16 +1,28 @@
--- Opcional. Rode depois que a API tiver aplicado as migrações.
+-- Opcional. Execute depois de criar uma conta, informando seu e-mail como variável do psql.
+-- psql ... -v usuario_email='EMAIL_DA_CONTA' -v ON_ERROR_STOP=1 -f database/demo.sql
+\if :{?usuario_email}
+\else
+\echo 'Informe -v usuario_email=EMAIL_DA_CONTA antes de executar.'
+\quit 1
+\endif
 BEGIN;
+SELECT set_config('curry.usuario_email', lower(btrim(:'usuario_email')), true);
 
 DO $demo$
 DECLARE
     atleta record;
     sessao record;
     jogador bigint;
+    dono bigint;
     treino bigint;
     zona text;
     numero_zona integer;
     zonas text[] := ARRAY['CANTO_ESQUERDO', 'ALA_ESQUERDA', 'TOPO_DO_ARCO', 'ALA_DIREITA', 'CANTO_DIREITO'];
 BEGIN
+    SELECT id INTO dono FROM usuarios WHERE email = current_setting('curry.usuario_email');
+    IF dono IS NULL THEN
+        RAISE EXCEPTION 'Conta não encontrada. Cadastre-se no CURRY primeiro.';
+    END IF;
     -- Serializa duas execuções simultâneas do próprio script de demonstração.
     PERFORM pg_advisory_xact_lock(90851, 3);
 
@@ -20,12 +32,12 @@ BEGIN
                               (3, 'Rafael Lima', 'Rafa', 'Ala-armador'))
                          AS dados(numero, nome, apelido, posicao)
     LOOP
-        IF EXISTS (SELECT 1 FROM jogadores j WHERE j.nome = atleta.nome AND j.apelido = atleta.apelido) THEN
+        IF EXISTS (SELECT 1 FROM jogadores j WHERE j.usuario_id = dono AND j.nome = atleta.nome AND j.apelido = atleta.apelido) THEN
             CONTINUE;
         END IF;
 
-        INSERT INTO jogadores(nome, apelido, posicao)
-        VALUES (atleta.nome, atleta.apelido, atleta.posicao) RETURNING id INTO jogador;
+        INSERT INTO jogadores(usuario_id, nome, apelido, posicao)
+        VALUES (dono, atleta.nome, atleta.apelido, atleta.posicao) RETURNING id INTO jogador;
 
         FOR sessao IN
             SELECT * FROM (VALUES

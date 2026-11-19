@@ -53,6 +53,14 @@ export class JogadoresStore {
     }
   }
 
+  limpar(): void {
+    ++this.pedido;
+    this.jogadores.set([]);
+    this.selecionar(null);
+    this.erro.set('');
+    this.carregando.set(false);
+  }
+
   salvar(jogador: Jogador): void {
     this.jogadores.update(lista => [...lista.filter(item => item.id !== jogador.id), jogador]
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR') || a.id - b.id));

@@ -1,6 +1,7 @@
 package br.com.curry.exception;
 
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.security.core.AuthenticationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -20,6 +21,11 @@ import java.util.Map;
 @RestControllerAdvice(basePackages = "br.com.curry.controller")
 public class ApiExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(AuthenticationException.class)
+    ProblemDetail autenticacao() {
+        return problema(HttpStatus.UNAUTHORIZED, "Não autenticado", "E-mail ou senha incorretos, ou sessão encerrada.");
+    }
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
     ProblemDetail naoEncontrado(RecursoNaoEncontradoException erro) {

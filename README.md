@@ -2,6 +2,8 @@
 
 **Every Shot Counts.** Plataforma para jogadores amadores acompanharem o arremesso de três pontos. Registre sessões e resultados nas cinco zonas da quadra, consulte a evolução e compare atletas. A interface usa uma identidade esportiva original.
 
+![Cadastro de conta no CURRY](docs/cadastro.jpg)
+
 ## Executar com Docker
 
 Requer Docker com Compose. No PowerShell, dentro da pasta do projeto:
@@ -20,14 +22,16 @@ docker compose logs -f app
 
 Abra [http://localhost:8080](http://localhost:8080) quando a aplicação iniciar. O pacote serve o Angular e a API na mesma origem. O PostgreSQL usa o volume `curry_pgdata`, que conserva os registros após reiniciar os serviços. Para parar, use `docker compose down`.
 
-O banco começa vazio. Cadastre um jogador pela interface ou carregue a demonstração após iniciar a API:
+O banco começa vazio. Abra **Criar minha conta**, informe nome, e-mail e senha, entre e cadastre seu jogador. Cada conta vê somente seus próprios jogadores, treinos e arremessos. O ranking é compartilhado entre as contas autenticadas e mostra somente os nomes e resultados gerais.
+
+Para carregar a demonstração na sua conta, substitua `EMAIL_DA_CONTA` pelo e-mail que você cadastrou:
 
 ```powershell
 docker compose cp database/demo.sql db:/tmp/curry-demo.sql
-docker compose exec -T db psql -U curry -d curry -v ON_ERROR_STOP=1 -f /tmp/curry-demo.sql
+docker compose exec -T db psql -U curry -d curry -v usuario_email=EMAIL_DA_CONTA -v ON_ERROR_STOP=1 -f /tmp/curry-demo.sql
 ```
 
-O script cadastra três atletas e treinos em datas diferentes. A carga é manual e uma segunda execução com os mesmos perfis presentes não duplica os dados.
+O script cadastra três atletas e treinos em datas diferentes para a conta informada. A carga é manual e uma segunda execução para a mesma conta não duplica os perfis existentes. Nenhuma senha demonstrativa ou conta padrão é criada.
 
 ## Executar em desenvolvimento
 
@@ -59,7 +63,21 @@ Abra [http://localhost:4200](http://localhost:4200). O Angular CLI encaminha `/a
 | `DB_PASSWORD` | Senha do banco | Configurada no ambiente |
 | `SERVER_ADDRESS` | Endereço em que a API escuta | `127.0.0.1` |
 | `SERVER_PORT` | Porta da API | `8080` |
+| `SESSION_COOKIE_SECURE` | Cookie de sessão somente por HTTPS em hospedagem | `false` local, `true` automático no Codespaces via Compose |
 | `CORS_ORIGINS` | Origens da API, separadas por vírgula | `http://localhost:4200,http://127.0.0.1:4200` |
+
+### Registros existentes antes do login
+
+A migração `V3__contas_e_propriedade.sql` adiciona `usuarios` e o proprietário de cada jogador, sem apagar os registros. Jogadores antigos ficam com `usuario_id IS NULL`, invisíveis na API e no ranking, até uma vinculação feita pelo operador do banco. Nenhuma pessoa que se cadastrar pode reivindicar esses dados pela interface.
+
+Depois de criar sua conta, o dono do banco pode vincular os jogadores antigos, preservando seus treinos e arremessos:
+
+```powershell
+docker compose cp database/vincular-legado.sql db:/tmp/curry-vincular.sql
+docker compose exec -T db psql -U curry -d curry -v usuario_email=EMAIL_DA_CONTA -v ON_ERROR_STOP=1 -f /tmp/curry-vincular.sql
+```
+
+Este comando vincula **todos os jogadores que ainda não têm dono** à conta explicitamente informada. Ele não muda jogadores já pertencentes a outra conta. Revise os registros antigos antes de executá-lo se o banco tiver sido compartilhado por várias pessoas.
 
 ### Conectar ao Neon
 
@@ -74,7 +92,7 @@ mvn -f backend/pom.xml spring-boot:run
 
 ## Arquitetura e estrutura
 
-O Angular 22 usa componentes standalone, Router, Reactive Forms, HttpClient, Bootstrap 5, Bootstrap Icons e Chart.js. A área de trabalho clara usa tabelas, formulários e controles do Bootstrap. O azul-marinho e o dourado identificam a navegação. As fontes Poppins e Inter são servidas pela aplicação. O Spring Boot 3.5 usa Java 21, Spring Web, Spring Data JPA, Hibernate, Bean Validation e Flyway. Os CRUDs usam JPA e os relatórios consultam views PostgreSQL por SQL parametrizado.
+O Angular 22 usa componentes standalone, Router, Reactive Forms, HttpClient, Bootstrap 5, Bootstrap Icons e Chart.js. A área de trabalho clara usa tabelas, formulários e controles do Bootstrap. O azul-marinho e o dourado identificam a navegação. As fontes Poppins e Inter são servidas pela aplicação. O Spring Boot 3.5 usa Java 21, Spring Web, Spring Data JPA, Hibernate, Bean Validation, Flyway e Spring Security. Os CRUDs usam JPA e os relatórios consultam views PostgreSQL por SQL parametrizado.
 
 ```text
 curry-splash-edition/
@@ -82,12 +100,13 @@ curry-splash-edition/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/br/com/curry/
-│       │   ├── config/       # CORS e rotas da SPA
+│       │   ├── config/       # Spring Security, CORS e rotas da SPA
 │       │   ├── controller/   # contratos HTTP
 │       │   ├── dto/          # entradas e respostas validadas
 │       │   ├── entity/       # mapeamento JPA
 │       │   ├── exception/    # erros padronizados
 │       │   ├── repository/   # JPA e consultas SQL
+│       │   ├── security/     # conta autenticada e identificação do proprietário
 │       │   └── service/      # regras e transações
 │       ├── main/resources/db/migration/
 │       └── test/java/br/com/curry/
@@ -95,7 +114,7 @@ curry-splash-edition/
 │   ├── public/              # identidade visual do CURRY
 │   ├── src/app/             # core, layout, shared e features
 │   └── e2e/                 # testes Playwright
-├── database/demo.sql
+├── database/               # demonstração e vinculação dos registros antigos
 ├── queries.sql
 ├── compose.yml
 ├── Dockerfile
@@ -108,15 +127,17 @@ curry-splash-edition/
 
 | Tabela | PK | FK | Conteúdo |
 | --- | --- | --- | --- |
-| `jogadores` | `id` | | Nome, apelido, posição e data de cadastro automática |
+| `usuarios` | `id` | | Nome, e-mail único normalizado, hash BCrypt e data de cadastro |
+| `jogadores` | `id` | `usuario_id → usuarios.id` | Nome, apelido, posição e data de cadastro automática |
 | `treinos` | `id` | `jogador_id → jogadores.id` | Data, duração, observações e data de cadastro |
 | `arremessos` | `id` | `treino_id → treinos.id` | Zona, tentativas e acertos |
 
-Os relacionamentos são 1:N nos dois níveis. As FKs têm `ON DELETE CASCADE`. Há uma zona por treino, garantida por `UNIQUE (treino_id, zona)`. As restrições `CHECK` validam zona, duração positiva e a regra `0 ≤ acertos ≤ tentativas`. Os índices atendem à busca por jogador, data e treino.
+Os relacionamentos são 1:N: `usuarios → jogadores → treinos → arremessos`. A FK da conta usa `ON DELETE RESTRICT`; as FKs de treinos e arremessos usam `ON DELETE CASCADE`. `usuario_id` aceita NULL somente para preservar registros anteriores à autenticação; todo novo jogador criado pela API recebe a conta autenticada. Há uma zona por treino, garantida por `UNIQUE (treino_id, zona)`. As restrições `CHECK` validam zona, duração positiva e a regra `0 ≤ acertos ≤ tentativas`. Os índices atendem à busca por jogador, data e treino.
 
 ### Funcionalidades e cálculos
 
-- **Dashboard** com os últimos treinos em primeiro plano, totais do jogador ativo, gráfico de evolução, quadra interativa e tabela de aproveitamento por zona. A escolha do jogador é lembrada no navegador.
+- **Contas** com cadastro por nome, e-mail e senha, login, restauração da sessão ao recarregar e logout. Todos os recursos individuais pertencem à conta autenticada.
+- **Dashboard** com os últimos treinos em primeiro plano, totais do jogador ativo, gráfico de evolução, quadra interativa e tabela de aproveitamento por zona. A seleção é limpa ao sair da conta.
 - **Jogadores e treinos** com cadastro, listagem, detalhe, edição e exclusão com confirmação.
 - **Arremessos** com edição e consulta por zona. Na tela do treino, clicar na quadra muda a zona de entrada. A sessão e os resultados preenchidos são gravados na mesma transação.
 - **Evolução** com série por data, melhor sessão, variação em pontos percentuais, duas sessões comparáveis e histórico cronológico.
@@ -124,7 +145,26 @@ Os relacionamentos são 1:N nos dois níveis. As FKs têm `ON DELETE CASCADE`. H
 - **Taxa de acerto** é `100 × SUM(acertos) / SUM(tentativas)`. Sessões na mesma data entram na mesma soma do gráfico. Com zero tentativas, a API devolve `null` e a interface exibe um traço. A melhor zona utiliza a taxa e, no empate, favorece o volume de tentativas.
 - **Quadra** com pontos acionáveis por toque, mouse ou teclado. A cor acompanha o valor textual. Cinza indica ausência de tentativas, lilás indica taxa abaixo de 35%, verde-água indica taxa entre 35% e 50% e dourado começa em 50%.
 
+## Autenticação e privacidade
+
+- A senha é armazenada como hash BCrypt com custo 12. O e-mail é normalizado para minúsculas e possui UNIQUE no PostgreSQL. A senha exige ao menos 8 caracteres e no máximo 72 bytes UTF-8.
+- O Spring Security mantém a sessão no servidor. O cookie `JSESSIONID` é HttpOnly, SameSite=Lax e Secure quando configurado para HTTPS. O identificador é trocado no login e invalidado no logout. A sessão expira após 30 minutos de inatividade. Reiniciar o backend encerra as sessões, preservando contas e dados no PostgreSQL.
+- O Angular não grava senha nem token de autenticação no localStorage. Solicita um token CSRF em `/api/auth/csrf` e o envia no cabeçalho `X-CSRF-TOKEN` em POST, PUT e DELETE, incluindo cadastro, login e logout. O token fica em memória e é renovado após mudar a sessão.
+- Todas as consultas e alterações de jogadores, treinos, arremessos e estatísticas individuais conferem o dono no backend. IDs pertencentes a outra conta respondem 404. Filtros de listagem também são restritos à conta. A interface usa guards e limpa os dados ao sair.
+- O ranking requer login e compartilha apenas nome/apelido/posição e estatísticas agregadas. Não oferece navegação para perfis de terceiros nem expõe e-mail, senha, datas dos treinos ou observações.
+- Para HTTPS fora do Codespaces, configure `SESSION_COOKIE_SECURE=true` e as origens exatas permitidas. Mantenha Angular e API na mesma origem para simplificar a sessão.
+
 ## API REST
+
+| Método | Caminho | Operação |
+| --- | --- | --- |
+| GET | `/api/auth/csrf` | Obter token CSRF, inclusive antes de entrar |
+| POST | `/api/auth/cadastro` | Criar conta: `nome`, `email`, `senha` |
+| POST | `/api/auth/login` | Entrar: `email`, `senha`; retorna conta sem a senha |
+| GET | `/api/auth/me` | Consultar a conta autenticada |
+| POST | `/api/auth/logout` | Encerrar a sessão, resposta 204 |
+
+As rotas abaixo exigem uma sessão autenticada. Os POST/PUT/DELETE também exigem CSRF. A API não recebe o proprietário do jogador pelo formulário: ela o identifica pela sessão.
 
 | Método | Caminho | Operação |
 | --- | --- | --- |
@@ -139,9 +179,9 @@ Os relacionamentos são 1:N nos dois níveis. As FKs têm `ON DELETE CASCADE`. H
 | GET | `/api/estatisticas/jogadores/{id}/evolucao` | Pontos por data, sessões e melhor treino |
 | GET | `/api/estatisticas/ranking` | Comparação entre jogadores |
 
-POST responde com `201 Created` e cabeçalho `Location`. DELETE responde com `204 No Content`. Os erros incluem `400` para dados inválidos, `404` para registro inexistente e `409` para conflito. Requisições usam JSON com data no formato `AAAA-MM-DD`.
+Os POST dos CRUDs respondem com `201 Created` e cabeçalho `Location`. DELETE responde com `204 No Content`. Os erros incluem `400` para dados inválidos, `401` sem sessão ou com credenciais incorretas, `403` para token CSRF inválido, `404` para registro inexistente e `409` para conflito. Requisições usam JSON com data no formato `AAAA-MM-DD`.
 
-Exemplo de corpo para cadastrar um treino com um registro por zona em `POST /api/treinos`. Use o ID de um jogador existente.
+Exemplo de corpo para cadastrar um treino com um registro por zona em `POST /api/treinos`. Use o ID de um jogador da sua conta.
 
 ```json
 {
@@ -159,6 +199,8 @@ Em `PUT /api/treinos/{id}`, omita `arremessos` para manter as zonas atuais, ou e
 
 ## SQL para apresentar
 
+As consultas SQL são executadas pelo operador do banco e podem mostrar registros de todas as contas. Elas não são endpoints públicos. Nunca compartilhe credenciais do PostgreSQL no frontend.
+
 O arquivo [queries.sql](queries.sql) inclui o JOIN entre as tabelas, COUNT, SUM, percentuais protegidos por NULLIF, agrupamento por zona e por data e uma subconsulta correlacionada. As views usadas pela API estão na [migração de estatísticas](backend/src/main/resources/db/migration/V2__consultas_estatisticas.sql).
 
 ```powershell
@@ -167,6 +209,14 @@ docker compose exec -T db psql -U curry -d curry -v ON_ERROR_STOP=1 -f /tmp/curr
 ```
 
 ## Testes
+
+Para verificar a atualização de um banco V2 com um jogador, treino e arremessos antigos, a vinculação a uma conta, a carga demonstrativa executada duas vezes e as seis consultas SQL, use:
+
+```bash
+bash scripts/verificar-sql.sh
+```
+
+O roteiro usa um esquema PostgreSQL descartável no serviço `db` do Compose e o remove ao terminar. Não altera o esquema da aplicação.
 
 Os testes do backend usam um banco PostgreSQL de teste. Informe uma URL JDBC, um usuário com permissão de criação de esquemas e a senha local, se aplicável. A suíte cria e remove um esquema próprio. Sem a URL, os testes de integração são ignorados.
 
@@ -177,7 +227,17 @@ $env:CURRY_TEST_DB_PASSWORD = Read-Host 'Senha do banco de teste'
 mvn -f backend/pom.xml verify
 ```
 
-Com a aplicação em execução, compile e rode o fluxo de navegador:
+Para verificar o pacote completo com o PostgreSQL do Compose em um **esquema descartável**, use Bash com Docker, Node e Python disponíveis:
+
+```bash
+docker compose up -d db
+docker compose build app
+bash scripts/testar-e2e.sh
+```
+
+O executor usa a imagem recém-compilada em `127.0.0.1:18080`, configura um esquema exclusivo para os testes e o remove ao terminar. Ele não altera jogadores ou contas do esquema da aplicação. Os relatórios ficam em `frontend/test-results/` quando há falha. O Chromium precisa das bibliotecas do sistema; se necessário, use `npx playwright install --with-deps chromium` dentro de `frontend`.
+
+Para executar manualmente contra uma aplicação de teste já configurada:
 
 ```powershell
 cd frontend
@@ -187,18 +247,19 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-O Playwright usa a URL `http://127.0.0.1:8080` por padrão. Para testar o Angular em modo de desenvolvimento, defina `CURRY_E2E_BASE_URL=http://127.0.0.1:4200` no ambiente. A suíte cria e remove seus próprios jogadores.
+O Playwright usa a URL `http://127.0.0.1:8080` por padrão. Para testar o Angular em modo de desenvolvimento, defina `CURRY_E2E_BASE_URL=http://127.0.0.1:4200` no ambiente. A suíte cadastra contas com credenciais aleatórias, exercita login/logout e cria jogadores de teste. Execute-a em um banco ou esquema descartável, pois não há endpoint para excluir contas. Ela também usa duas sessões independentes para verificar que os dados privados não aparecem na outra conta e que o ranking exibe somente os resultados gerais.
 
 ### Verificações executadas
 
-- Build de produção do Angular e empacotamento Maven com Java 21 concluídos.
-- Cinco testes de integração passaram contra PostgreSQL 17.9, cobrindo CRUD, validação, restrições, cascata, ranking e médias ponderadas.
-- Dois testes Playwright passaram no aplicativo integrado. O fluxo registrou as cinco zonas, recalculou o gráfico após uma edição, passou pelos três CRUDs e verificou a quadra e a navegação em 390 px.
-- As cinco consultas do `queries.sql` foram executadas no PostgreSQL. Duas cargas do roteiro de demonstração mantiveram 3 jogadores, 15 treinos e 75 registros.
-- A API devolveu os mesmos totais depois de reiniciar o PostgreSQL e o backend. O proxy do Angular CLI também respondeu com dados do banco.
+- Build de produção Angular concluído e imagem Docker com Angular + Spring Boot compilada no Codespaces.
+- **8 testes de integração aprovados com PostgreSQL 17.12**: CRUD, validação, restrições e cascata, percentuais ponderados, cadastro, hash BCrypt, e-mail único, rotação da sessão, CSRF e logout.
+- O teste com duas contas cobriu listas e filtros, leitura/edição/exclusão por IDs de terceiros, reassociação de treinos e arremessos e estatísticas privadas. O ranking compartilhou os nomes e totais sem e-mail, senha ou observações. Registros legados sem dono ficaram inacessíveis.
+- **3 testes Playwright aprovados no pacote integrado**: cadastro/login, os três CRUDs com as cinco zonas e atualização do gráfico, navegação e quadra em 390 px, privacidade entre duas sessões, ranking sem links de terceiros, restauração ao recarregar e logout seguido de retorno pelo histórico.
+- `scripts/verificar-sql.sh` aprovado: atualização V2 → V3 com registros existentes, vinculação do legado, duas cargas demonstrativas sem duplicação (4 jogadores, 16 treinos e 76 zonas incluindo o legado) e as seis consultas do `queries.sql`.
+- Os testes de integração, de navegador e de SQL usaram esquemas descartáveis. O esquema e os dados da aplicação em execução foram preservados.
 
 ## Limitações
 
-Esta versão foi projetada para demonstração em ambiente controlado. A API permite leituras e alterações sem login. Qualquer publicação para uso público exige controles de acesso. O ranking informa o volume de tentativas para que uma amostra pequena possa ser interpretada. A conexão com o Neon exige suas credenciais. A validação executada usou PostgreSQL local e o pacote integrado Spring Boot. O Docker Compose está configurado para execução local e ficou fora das verificações deste ambiente.
+Esta versão acadêmica tem cadastro, autenticação e isolamento por proprietário. Não inclui confirmação de e-mail, recuperação de senha, MFA, moderação do ranking ou limitação de tentativas de login. Uma publicação aberta exige configurar esses controles operacionais, HTTPS, backups e monitoramento. A sessão fica na memória de uma instância do backend; uma hospedagem com várias instâncias precisaria compartilhar as sessões. A conexão Neon exige suas credenciais. Os dados antigos precisam ser vinculados pelo operador conforme a seção de migração.
 
 Consulte o [CHECKLIST.md](CHECKLIST.md) para a apresentação acadêmica.

@@ -1,6 +1,7 @@
 package br.com.curry.service;
 
 import br.com.curry.dto.ArremessoDto;
+import br.com.curry.security.UsuarioAtual;
 import br.com.curry.dto.TreinoDto;
 import br.com.curry.entity.Arremesso;
 import br.com.curry.entity.Treino;
@@ -22,13 +23,15 @@ import java.util.Map;
 @Service
 @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 public class TreinoService {
+    private final UsuarioAtual atual;
     private final TreinoRepository treinos;
     private final ArremessoRepository arremessos;
     private final JogadorService jogadores;
     private final EstatisticasRepository estatisticas;
 
     public TreinoService(TreinoRepository treinos, ArremessoRepository arremessos,
-                         JogadorService jogadores, EstatisticasRepository estatisticas) {
+                         JogadorService jogadores, EstatisticasRepository estatisticas, UsuarioAtual atual) {
+        this.atual = atual;
         this.treinos = treinos;
         this.arremessos = arremessos;
         this.jogadores = jogadores;
@@ -76,7 +79,7 @@ public class TreinoService {
     }
 
     private Treino buscarComBloqueio(long id) {
-        return treinos.findLockedById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Treino", id));
+        return treinos.findLockedById(id, atual.id()).orElseThrow(() -> new RecursoNaoEncontradoException("Treino", id));
     }
 
     private TreinoDto.Detalhe detalhe(long id) {
