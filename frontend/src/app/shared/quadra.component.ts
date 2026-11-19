@@ -7,7 +7,7 @@ import { Zona, ZonaTotal, ZONAS } from '../core/models';
   template: `
     <div class="court">
       <svg viewBox="0 0 500 320" aria-hidden="true" class="court-svg">
-        <rect class="court-floor" x="18" y="22" width="464" height="281" rx="3"/>
+        <rect class="court-floor" x="18" y="22" width="464" height="281"/>
         <path class="court-lane-fill" d="M 180 23 H 320 V 147 H 180 Z"/>
         <path class="court-line" d="M 180 23 V 147 H 320 V 23
           M 195 53 H 180 M 195 75 H 180 M 195 97 H 180 M 195 119 H 180

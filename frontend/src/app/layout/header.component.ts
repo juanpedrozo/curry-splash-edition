@@ -6,9 +6,9 @@ import { JogadoresStore } from '../core/jogadores.store';
   selector: 'curry-header',
   imports: [RouterLink],
   template: `
-    <header class="navbar app-header" data-bs-theme="dark" (keydown.escape)="fecharMenu.emit()">
+    <header class="navbar app-header" (keydown.escape)="fecharMenu.emit()">
       <div class="header-context d-flex align-items-center">
-        <button class="btn btn-outline-light icon-button mobile-menu" type="button" [attr.aria-expanded]="menuAberto()"
+        <button class="btn btn-outline-secondary icon-button mobile-menu" type="button" [attr.aria-expanded]="menuAberto()"
                 aria-controls="menu-principal" [attr.aria-label]="menuAberto() ? 'Fechar menu' : 'Abrir menu'"
                 (click)="abrirMenu.emit()">
           <i class="bi bi-list" aria-hidden="true"></i>

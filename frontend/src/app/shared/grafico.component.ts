@@ -32,6 +32,9 @@ export class GraficoComponent {
             pointRadius: 3.25,
             pointHoverRadius: 5,
             borderWidth: 2,
+            tension: 0,
+            borderCapStyle: 'butt',
+            borderJoinStyle: 'miter',
             spanGaps: false,
           }],
         },
@@ -48,7 +51,7 @@ export class GraficoComponent {
           },
           plugins: {
             tooltip: {
-              backgroundColor: '#081a2f', borderColor: '#3a4f69', borderWidth: 1, padding: 12,
+              backgroundColor: '#22262b', borderColor: '#454b53', borderWidth: 1, padding: 12, cornerRadius: 0,
               titleColor: '#f7f9fd', bodyColor: '#d9e1ec',
               callbacks: {
                 title: itens => itens.length ? formatarData(pontos[itens[0].dataIndex].data) : '',

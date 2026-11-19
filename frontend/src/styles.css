@@ -9,17 +9,24 @@
   --gold-tint: #fff5db;
   --gold-text: #63470f;
   --surface: #fff;
-  --surface-muted: #f6f8fa;
-  --line: #d8dfe7;
-  --line-soft: #e5e9ee;
-  --text: #14253a;
-  --body: #2e3e51;
-  --muted: #576579;
+  --surface-muted: #f7f7f8;
+  --line: #dadddf;
+  --line-soft: #e7e8ea;
+  --text: #24292f;
+  --body: #3d444d;
+  --muted: #626b76;
   --heading: 'Poppins', sans-serif;
   --inter: 'Inter Variable', Inter, sans-serif;
   --sidebar: 188px;
   --header: 58px;
-  --bs-body-bg: #f2f4f7;
+  --bs-body-bg: #f4f5f6;
+  --bs-border-radius: 0;
+  --bs-border-radius-sm: 0;
+  --bs-border-radius-lg: 0;
+  --bs-border-radius-xl: 0;
+  --bs-border-radius-xxl: 0;
+  --bs-border-radius-2xl: 0;
+  --bs-border-radius-pill: 0;
   --bs-body-color: var(--body);
   --bs-body-font-family: var(--inter);
   --bs-border-color: var(--line);
@@ -100,23 +107,23 @@ curry-header { display: block; position: sticky; top: 0; z-index: 1030; }
   flex-wrap: nowrap;
   gap: .75rem;
   padding: 0 1.375rem;
-  background: var(--navy);
-  border-bottom: 1px solid #293c55;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
 }
 .header-context, .header-actions { min-width: 0; gap: .75rem; }
-.brand { gap: .5rem; padding: 0; margin: 0; color: #fff; text-decoration: none; }
-.brand:hover { color: #fff; }
-.brand img { flex: none; }
+.brand { gap: .5rem; padding: 0; margin: 0; color: var(--text); text-decoration: none; }
+.brand:hover { color: var(--text); }
+.brand img { flex: none; filter: brightness(.7); }
 .brand strong { font: 700 1.075rem/1 var(--inter); letter-spacing: -.025em; }
-.brand-edition { margin-left: .3rem; color: #a9b7c8; font-size: .75rem; }
+.brand-edition { margin-left: .3rem; color: var(--muted); font-size: .75rem; }
 .athlete-picker { display: flex; align-items: center; gap: .5rem; min-width: 0; }
-.athlete-label { color: #d5dfeb; font-size: .75rem; white-space: nowrap; }
+.athlete-label { color: var(--muted); font-size: .75rem; white-space: nowrap; }
 .athlete-picker .form-select {
   width: clamp(110px, 17vw, 212px);
   min-width: 0;
-  color: #fff;
-  background-color: #152b47;
-  border-color: #5a6d84;
+  color: var(--text);
+  background-color: #fff;
+  border-color: #b6bdc5;
   text-overflow: ellipsis;
 }
 .athlete-picker .form-select:focus { border-color: #d8af59; box-shadow: 0 0 0 .16rem #fdb92733; }
@@ -139,11 +146,11 @@ curry-header { display: block; position: sticky; top: 0; z-index: 1030; }
   width: var(--sidebar);
   padding: 1.25rem .625rem .75rem;
   overflow-y: auto;
-  background: #101e30;
-  border-right: 1px solid #243246;
+  background: #22262b;
+  border-right: 1px solid #22262b;
 }
 .app-sidebar .nav {
-  --bs-nav-link-color: #b0bdce;
+  --bs-nav-link-color: #bec3ca;
   --bs-nav-link-hover-color: #fff;
   --bs-nav-link-font-size: .875rem;
   --bs-nav-link-font-weight: 400;
@@ -155,10 +162,10 @@ curry-header { display: block; position: sticky; top: 0; z-index: 1030; }
   min-height: 44px;
   gap: .75rem;
   padding: .5rem .75rem;
-  border-radius: .25rem;
+  border-radius: 0;
   line-height: 1.4;
 }
-.app-sidebar .nav-link i { width: 18px; color: #94a4b9; font-size: 1rem; text-align: center; }
+.app-sidebar .nav-link i { width: 18px; color: #9ba3ad; font-size: 1rem; text-align: center; }
 .app-sidebar .nav-link:hover { background: #ffffff06; }
 .app-sidebar .nav-link.active { color: #fff; font-weight: 600; }
 .app-sidebar .nav-link.active::before {
@@ -170,12 +177,13 @@ curry-header { display: block; position: sticky; top: 0; z-index: 1030; }
   width: 2px;
   background: var(--gold);
 }
-.app-sidebar .nav-link.active i { color: #dce4ef; }
-.app-header :focus-visible, .app-sidebar :focus-visible { outline-color: var(--gold); }
-.sidebar-footer { padding: 1rem .75rem 0; border-top: 1px solid #29374a; color: #aebacc; font-size: .8125rem; }
+.app-sidebar .nav-link.active i { color: #e7e9ec; }
+.app-header :focus-visible { outline-color: var(--accent); }
+.app-sidebar :focus-visible { outline-color: var(--gold); }
+.sidebar-footer { padding: 1rem .75rem 0; border-top: 1px solid #3b4047; color: #b4bbc4; font-size: .8125rem; }
 .sidebar-account { display: flex; flex-direction: column; min-width: 0; gap: .25rem; }
-.sidebar-account strong { color: #dce4ef; font-size: .8125rem; font-weight: 500; }
-.sidebar-account span { font-size: .75rem; color: #98a8bd; }
+.sidebar-account strong { color: #e7e9ec; font-size: .8125rem; font-weight: 500; }
+.sidebar-account span { font-size: .75rem; color: #a6aeb9; }
 .sidebar-account strong, .sidebar-account span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .sidebar-logout {
   display: inline-flex;
@@ -186,9 +194,9 @@ curry-header { display: block; position: sticky; top: 0; z-index: 1030; }
   margin: .5rem 0 0 -.375rem;
   padding: .375rem;
   border: 0;
-  border-radius: .25rem;
+  border-radius: 0;
   background: transparent;
-  color: #aebacc;
+  color: #b4bbc4;
   font: inherit;
   cursor: pointer;
   text-align: left;
@@ -411,12 +419,13 @@ curry-header { display: block; position: sticky; top: 0; z-index: 1030; }
 
 /* Acesso à conta: o mesmo Bootstrap e a identidade usada no aplicativo. */
 .auth-page { min-height: 100dvh; background: var(--bs-body-bg); }
-.auth-header { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 2rem; background: var(--navy); color: #c9d5e4; border-bottom: 3px solid var(--gold); }
-.auth-brand { display: inline-flex; align-items: center; gap: .6rem; color: #fff; text-decoration: none; }
-.auth-brand:hover { color: #fff; }
+.auth-header { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 2rem; background: #fff; color: var(--muted); border-bottom: 1px solid var(--line); }
+.auth-brand { display: inline-flex; align-items: center; gap: .6rem; color: var(--text); text-decoration: none; }
+.auth-brand:hover { color: var(--text); }
+.auth-brand img { filter: brightness(.7); }
 .auth-slogan { font-size: .8125rem; }
 .auth-main { width: min(100%, 480px); margin: 0 auto; padding: 3rem 1rem 1.5rem; }
-.auth-card { padding: 2rem; border-color: var(--line); border-radius: .5rem; box-shadow: 0 3px 12px #14253a08; }
+.auth-card { padding: 2rem; border-color: var(--line); border-radius: 0; box-shadow: none; }
 .auth-card-heading { padding-bottom: 1.5rem; }
 .auth-label { display: block; font-size: .625rem; font-weight: 700; letter-spacing: .1em; color: var(--muted); margin-bottom: .65rem; }
 .auth-card h1 { font-size: 1.6rem; margin-bottom: .5rem; }
@@ -424,7 +433,7 @@ curry-header { display: block; position: sticky; top: 0; z-index: 1030; }
 .auth-submit { min-height: 42px; margin-top: .25rem; }
 .auth-switch { padding-top: 1.5rem; text-align: center; color: var(--muted); font-size: .8125rem; }
 .auth-switch a { font-weight: 600; margin-left: .25rem; }
-.auth-privacy { font-size: .75rem; color: var(--muted); line-height: 1.6; padding: .85rem; background: var(--surface-muted); border: 1px solid var(--line-soft); border-radius: .375rem; margin-bottom: 1rem; }
+.auth-privacy { font-size: .75rem; color: var(--muted); line-height: 1.6; padding: .85rem; background: var(--surface-muted); border: 1px solid var(--line-soft); border-radius: 0; margin-bottom: 1rem; }
 .auth-privacy i { color: var(--accent); margin-right: .25rem; }
 .auth-footer { color: var(--muted); font-size: .75rem; text-align: center; padding-top: 1.5rem; }
 @media (max-width: 575px) {
